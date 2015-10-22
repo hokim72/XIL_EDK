@@ -5,3 +5,4 @@ _impactbatch.log
 **/build/
 *.o
 **/.git
+**/.metadata
