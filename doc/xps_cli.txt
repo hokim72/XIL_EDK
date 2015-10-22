@@ -1,0 +1,26 @@
+$ xps -nw -scr $XIL_EDK/xps-genmakefile.tcl mb_system.xmp
+$ make -f mb_system.make bits
+$ make -f mb_system.make exporttosdk
+$ mkdir WorkSpace
+$ cd WorkSpace
+$ mkdir mb_system_hw_platform
+$ cd mb_system_hw_platform
+$ cp ../../SDK/SDK_Export/hw/mb_system.xml system.xml 
+$ cp ../../SDK/SDK_Export/hw/mb_system.bit system.bit
+$ cp ../../SDK/SDK_Export/hw/mb_system_bd.bmm  system_bd.bmm
+$ data2mem -bm system_bd.bmm -bt system.bit -bd /opt/Xilinx/14.3/ISE_DS/EDK/sw/lib/microblaze/mb_bootloop_le.elf tag microblaze_0 -o b download.bit 
+$ impact -batch $XIL_EDK/download.cmd
+$ cd ..
+$ mkdir mytest
+$ cd mytest
+$ appguru -hw ../mb_system_hw_platform/system.xml -app lwip_echo_server 
+
+system.mss file:
+ #PARAMETER LIBRARY_NAME = lwip140
+ #PARAMETER LIBRARY_VER = 1.03.a
+ PARAMETER LIBRARY_NAME = lwip130
+ PARAMETER LIBRARY_VER = 3.01.a
+
+$ make
+$ xmd -tcl $XIL_EDK/xmd-downloadelf.tcl executalbe.elf
+
