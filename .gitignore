@@ -1,6 +1,7 @@
 *.sw[op]
 _impactbatch.log
-*.o
 *~
 *#
 **/build/
+*.o
+**/.git
