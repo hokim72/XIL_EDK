@@ -39,7 +39,7 @@ set(LD_FLAGS
 )
 string(REPLACE ";" " " LD_FLAGS "${LD_FLAGS}")
 
-set(SRCS main.c echo.c platform.c dispatch.c )
+set(SRCS main.c echo.c rxperf.c txperf.c platform.c dispatch.c )
 set_source_files_properties(${SRCS} PROPERTIES COMPILE_FLAGS "${CPP_FLAGS} ${C_FLAGS}")
 
 add_executable(${TARGET}.elf ${SRCS})

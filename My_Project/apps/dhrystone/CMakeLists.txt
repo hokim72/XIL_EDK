@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 set(SYSTEM_NAME mb_system)
 set(PROCESSOR microblaze_0)
-set(BSP standalone_bsp)
+set(BSP standalone_bsp_0)
 
 set(MCU v8.40.b)
 

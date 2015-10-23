@@ -11,7 +11,7 @@
 /*******************************************************************/
 
 _STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 0x400;
-_HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x0;
+_HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x000;
 
 /* Define Memories in the system */
 
@@ -118,7 +118,7 @@ SECTIONS
 
 .got : {
    *(.got)
-} > microblaze_0_i_bram_ctrl_microblaze_0_d_bram_ctrl
+} > mcb3_lpddr_S0_AXI_BASEADDR
 
 .got1 : {
    *(.got1)
