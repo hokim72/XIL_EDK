@@ -448,8 +448,8 @@ init_platform()
 	platform_setup_interrupts();
 
 	/* initialize file system layer */
-	//if (platform_init_fs() < 0)
-    //        return -1;
+	if (platform_init_fs() < 0)
+            return -1;
 #endif
 #ifdef __arm__
 

@@ -36,6 +36,7 @@ find_program(APPGURU appguru)
 find_program(SIZE mb-size)
 find_program(IMPACT impact)
 find_program(XMD xmd)
+find_program(MFSGEN mfsgen)
 # Name of the target platform
 SET(CMAKE_SYSTEM Xilinx-Microblaze)
 SET(CMAKE_SYSTEM_NAME Generic)

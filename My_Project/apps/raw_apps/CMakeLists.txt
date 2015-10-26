@@ -39,18 +39,24 @@ set(LD_FLAGS
 )
 string(REPLACE ";" " " LD_FLAGS "${LD_FLAGS}")
 
-set(SRCS main.c echo.c rxperf.c txperf.c platform.c dispatch.c )
+set(SRCS main.c echo.c rxperf.c txperf.c utxperf.c urxperf.c webserver.c web_utils.c http_response.c platform_gpio.c prot_malloc.c tftputils.c tftpserver.c platform_fs.c platform.c dispatch.c )
 set_source_files_properties(${SRCS} PROPERTIES COMPILE_FLAGS "${CPP_FLAGS} ${C_FLAGS}")
 
 add_executable(${TARGET}.elf ${SRCS})
 set(CMAKE_EXE_LINKER_FLAGS "${LD_FLAGS}")
 target_link_libraries(${TARGET}.elf xil lwip4)
 
+add_custom_command(
+	COMMAND ${MFSGEN} -cvbf ../image.mfs 3000 *
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/memfs
+	OUTPUT ${CMAKE_SOURCE_DIR}/image.mfs
+)
+
 add_custom_target(${TARGET} ALL
 	COMMAND ${SIZE} ${TARGET}.elf | tee ${TARGET}.elf.size
 	COMMAND ${CMAKE_COMMAND} -E copy ${TARGET}.elf ${CMAKE_SOURCE_DIR}/${TARGET}.elf
 	#COMMAND ${CMAKE_COMMAND} -E copy ${TARGET}.elf.size ${CMAKE_SOURCE_DIR}/${TARGET}.elf.size
-	DEPENDS ${TARGET}.elf
+	DEPENDS ${TARGET}.elf ${CMAKE_SOURCE_DIR}/image.mfs
 )
 		
 add_custom_target(download-bit
@@ -60,7 +66,7 @@ add_custom_target(download-bit
 )
 
 add_custom_target(download-elf
-	COMMAND ${XMD} -hw ${CMAKE_SOURCE_DIR}/../${SYSTEM_NAME}_hw_platform/system.xml -tcl $ENV{XIL_EDK}/xmd-downloadelf.tcl ${TARGET}.elf
+	COMMAND ${XMD} -hw ${CMAKE_SOURCE_DIR}/../${SYSTEM_NAME}_hw_platform/system.xml -tcl ${CMAKE_SOURCE_DIR}/xmd-downloadelf.tcl ${TARGET}.elf
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	DEPENDS ${TARGET}
 )
