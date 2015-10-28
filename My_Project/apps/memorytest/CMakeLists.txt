@@ -11,7 +11,7 @@ set(TARGET memorytest)
 set(CPP_FLAGS)
 
 set(C_FLAGS
-	-Wall -O3 -fmessage-length=0
+	-Wall -Os -fmessage-length=0
 	-mlittle-endian
 	-mno-xl-soft-mul
 	-mxl-barrel-shift
@@ -64,3 +64,43 @@ add_custom_target(download-elf
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	DEPENDS ${TARGET}
 )
+
+add_custom_command(
+	COMMAND ${DATA2MEM} -bm ${CMAKE_SOURCE_DIR}/../${SYSTEM_NAME}_hw_platform/system_bd.bmm -bt ${CMAKE_SOURCE_DIR}/../${SYSTEM_NAME}_hw_platform/system.bit -bd ${TARGET}.elf tag ${PROCESSOR} -o b download.bit
+	DEPENDS ${TARGET}.elf
+	OUTPUT download.bit
+)
+add_custom_command(
+	COMMAND ${IMPACT} -batch $ENV{XIL_EDK}/generate-prom.cmd
+	COMMAND ${CMAKE_COMMAND} -E copy bitstream.mcs ${CMAKE_SOURCE_DIR}/${TARGET}.mcs
+	DEPENDS download.bit
+	OUTPUT ${TARGET}.mcs
+)
+
+file(WRITE ${CMAKE_BINARY_DIR}/program-prom.cmake "
+configure_file(\$ENV{XIL_EDK}/program-prom.cmd \${CMAKE_BINARY_DIR}/program-prom.cmd)
+")
+
+add_custom_command(
+	COMMAND ${CMAKE_COMMAND} -D FLASH_DEVICE="N25Q128" 
+							 -D MCS_FILE=${TARGET}.mcs
+							 -P ${CMAKE_BINARY_DIR}/program-prom.cmake
+	OUTPUT program-prom.cmd
+)
+
+add_custom_target(program-mcs
+	COMMAND ${IMPACT} -batch ${CMAKE_BINARY_DIR}/program-prom.cmd
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	DEPENDS ${TARGET}.mcs program-prom.cmd
+)
+
+set(ADD_CLEAN_FILES ${CMAKE_SOURCE_DIR}/${TARGET}.elf 
+					${CMAKE_SOURCE_DIR}/${TARGET}.mcs
+					bitstream.cfi
+					bitstream.mcs
+					bitstream.prm
+					download_cclktemp.bit
+					${TARGET}.elf.size
+)
+
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${ADD_CLEAN_FILES}")

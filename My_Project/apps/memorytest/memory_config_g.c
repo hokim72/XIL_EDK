@@ -6,7 +6,7 @@ struct memory_range_s memory_ranges[] = {
 	{
 		"mcb3_lpddr",
 		"axi_s6_ddrx",
-		0xbc000000,
+		0xa4000000,
 		67108864,
 	},
 };

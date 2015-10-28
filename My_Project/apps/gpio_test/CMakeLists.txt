@@ -11,7 +11,7 @@ set(TARGET gpio_test)
 set(CPP_FLAGS)
 
 set(C_FLAGS
-	-Wall -O3 -fmessage-length=0
+	-Wall -Os -fmessage-length=0
 	-mlittle-endian
 	-mno-xl-soft-mul
 	-mxl-barrel-shift

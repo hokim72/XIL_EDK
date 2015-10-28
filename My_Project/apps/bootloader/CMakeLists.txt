@@ -8,10 +8,12 @@ set(MCU v8.40.b)
 
 set(TARGET bootloader)
 
-set(CPP_FLAGS)
+set(CPP_FLAGS -DBOOT_DEBUG)
+#set(CPP_FLAGS -DBOOT_DEBUG -DUSE_FS)
+string(REPLACE ";" " " CPP_FLAGS "${CPP_FLAGS}")
 
 set(C_FLAGS
-	-Wall -O3 -fmessage-length=0
+	-Wall -Os -fmessage-length=0
 	-mlittle-endian
 	-mno-xl-soft-mul
 	-mxl-barrel-shift
@@ -34,11 +36,12 @@ set(LD_FLAGS
 	-mcpu=${MCU}
 	#-Wl,--start-group,-lxil,-lgcc,-lc,--end-group
 	-L${CMAKE_SOURCE_DIR}/../${BSP}/${PROCESSOR}/lib
-	-T${CMAKE_SOURCE_DIR}/../${BSP}/lscript.ld
+	#-T${CMAKE_SOURCE_DIR}/../${BSP}/lscript.ld
+	-T${CMAKE_SOURCE_DIR}/lscript.ld
 )
 string(REPLACE ";" " " LD_FLAGS "${LD_FLAGS}")
 
-set(SRCS ${TARGET}.c platform.c srec.c)
+set(SRCS ${TARGET}.c SF_commands.c)
 set_source_files_properties(${SRCS} PROPERTIES COMPILE_FLAGS "${CPP_FLAGS} ${C_FLAGS}")
 
 add_executable(${TARGET}.elf ${SRCS})

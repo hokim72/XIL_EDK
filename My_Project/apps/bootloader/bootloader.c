@@ -1,215 +1,346 @@
-/////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (c) 2009 Xilinx, Inc. All Rights Reserved.
-//
-// You may copy and modify these files for your own internal use solely with
-// Xilinx programmable logic devices and  Xilinx EDK system or create IP
-// modules solely for Xilinx programmable logic devices and Xilinx EDK system.
-// No rights are granted to distribute any files unless they are distributed in
-// Xilinx programmable logic devices.
-//
-/////////////////////////////////////////////////////////////////////////////////
+#ifdef USE_FS
+#include <mfs_config.h> // For memory file system definitions.
+#endif // USE_FS
+#include <stdlib.h> // For exit()
+#include "xparameters.h"
+#include "xil_cache.h"
+#include "xbasic_types.h"
+#include "xspi.h"
 
-/*
- *      Simple SREC Bootloader
- *      This simple bootloader is provided with Xilinx EDK for you to easily re-use in your
- *      own software project. It is capable of booting an SREC format image file 
- *      (Mototorola S-record format), given the location of the image in memory.
- *      In particular, this bootloader is designed for images stored in non-volatile flash
- *      memory that is addressable from the processor. 
- *
- *      Please modify the define "FLASH_IMAGE_BASEADDR" in the blconfig.h header file 
- *      to point to the memory location from which the bootloader has to pick up the 
- *      flash image from.
- *
- *      You can include these sources in your software application project in XPS and 
- *      build the project for the processor for which you want the bootload to happen.
- *      You can also subsequently modify these sources to adapt the bootloader for any
- *      specific scenario that you might require it for.
- *
- */
+#include "SF_commands.h"
 
+#define APP_DESTINATION_ADDR	XPAR_MCB3_LPDDR_S0_AXI_BASEADDR
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "blconfig.h"
-#include "portab.h"
-#include "errors.h"
-#include "srec.h"
+// If a file system is to used, get the destination address from the
+// MFS configuration
+#ifdef USE_FS
+#define FS_DESTINATION_ADDR		MFS_BASE_ADDRESS
+#endif // USE_FS
 
-/* Defines */
-#define CR       13
+// Define the application storage area of the flash.
+// Corresponds to maximum program size. 0x100000 = 640KB.
+#define APP_SECTOR_START	16	// 16 * 256 bytes/page * 256 pages/sector = 0x100000
+#define APP_SECTOR_END	    32  // 32 * 256 bytes/page * 256 pages/sector = 0x200000
 
-/* Comment the following line, if you want a smaller and faster bootloader which will be silent */
-#define VERBOSE
+// Define the file system storage area of the flash.
+#define FS_SECTOR_START		32  // 32 * 256 bytes/page * 256 pages/sector = 0x200000
+#define FS_SECTOR_END		64  // 64 * 256 bytes/page * 256 pages/sector = 0x400000
 
-/* Declarations */
-static void display_progress (uint32_t lines);
-static uint8_t load_exec ();
-static uint8_t flash_get_srec_line (uint8_t *buf);
-extern void init_stdout();
+// Define the microblaze vector storage area of the flash.
+#define VECTOR_SECTOR		64   // 64 * 256 bytes/page * 256 pages/sector = 0x400000
+#define VECTOR_SIZE			(0x50 + CMD_LEN) // Corressponds to MicroBlaze vector size.
+#define VECTOR_ADDR			0x0  // Corresponds to the target destination offset in memory.
 
-extern int srec_line;
+// Maximum send/receive buffer length in bytes
+#define BUF_LEN				(SF_BYTES_PER_PAGE + CMD_LEN)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+XSpi spiInstance; // SPI configuration space.
+XSpi *configSPIptr; // SPI controller driver instance pointer.
 
-extern void outbyte(char c); 
+int (*boot_app) (void);
 
-#ifdef __cplusplus
-}
-#endif
-
-/* Data structures */
-static srec_info_t srinfo;
-static uint8_t sr_buf[SREC_MAX_BYTES];
-static uint8_t sr_data_buf[SREC_DATA_MAX_BYTES];
-
-static uint8_t *flbuf;
-
-#ifdef VERBOSE
-static int8_t *errors[] = { 
-    "",
-    "Error while copying executable image into RAM",
-    "Error while reading an SREC line from flash",
-    "SREC line is corrupted",
-    "SREC has invalid checksum."
-};
-#endif
-
-/* We don't use interrupts/exceptions. 
-   Dummy definitions to reduce code size on MicroBlaze */
-#ifdef __MICROBLAZE__
-void _interrupt_handler () {}
-void _exception_handler () {}
-void _hw_exception_handler () {}
-#endif
-
-
-int main()
+int main(void)
 {
-    uint8_t ret;
+	u8 recv_data[BUF_LEN];
+	u8 send_data[BUF_LEN];
+	u16 offset;
+	u16 page;
+	u16 sector;
+	u32 result;
+	u8* destination_location = (unsigned char *) APP_DESTINATION_ADDR;
 
-    init_stdout();
+	// Enable cache and initialize it.
+	Xil_ICacheEnable();
+	Xil_DCacheEnable();
 
-#ifdef VERBOSE    
-    print ("\r\nSREC Bootloader\r\n");
-    print ("Loading SREC image from flash @ address: ");    
-    putnum (FLASH_IMAGE_BASEADDR);
-    print ("\r\n");        
+	xil_printf("\r\nAvnet S6-LX9 Booting...\r\n");
+
+	// Set the instance pointer to the SPI configuration space allocated for this device.
+	configSPIptr = &spiInstance;
+
+	// Initialize the device and verify success.
+	result = XSpi_Initialize(configSPIptr, XPAR_SPI_FLASH_DEVICE_ID);
+
+	if (result != XST_SUCCESS)
+	{
+		xil_printf("FATAL: Cannot locate system SPI device. Exiting...\r\n");
+		exit(1);
+	}
+
+	// Set the SPI device options for Master Mode and manual slave select
+	result = XSpi_SetOptions(configSPIptr, XSP_MASTER_OPTION |
+									XSP_MANUAL_SSELECT_OPTION);
+
+	if (result != XST_SUCCESS)
+	{
+		xil_printf("FATAL: SPI options could not be set.\r\n");
+		exit(1);
+	}
+
+	// Start the SPI device controller. Not much point checking the return code,
+	// since its either XST_SUCCESS or XST_DEVICE_IS_STARTED.
+	(void) XSpi_Start(configSPIptr);
+
+	// We will use the SPI driver in polled mode, so disable the Global Interrupt flag.
+	// This must be done AFTER the controller has been started.
+	XSpi_IntrGlobalDisable(configSPIptr);
+
+	// Select flash device in the controller.
+	// This must be done AFTER the controller has been started.
+	result = XSpi_SetSlaveSelect(configSPIptr, SPI_FLASH_SELECT);
+	if (result != XST_SUCCESS)
+	{
+		xil_printf("FATAL: SPI device selection failed!\r\n");
+		exit(1);
+	}
+
+	// Get the SPI flash manufacturer ID and display to the user for debug.
+#ifdef BOOT_DEBUG
+	SF_read_id(configSPIptr);
+#endif // BOOT_DEBUG
+
+	// Read flash and copy application image to RAM.
+
+	// Copy APP_SIZE number of bytes from SPI flash to system RAM.
+#ifdef BOOT_DEBUG
+	xil_printf("Application Loading...");
+#endif // BOOT_DEBUG
+	sector = APP_SECTOR_START;
+	page = 0;
+	destination_location = (unsigned char *)APP_DESTINATION_ADDR;
+
+	while (sector < APP_SECTOR_END)
+	{
+		// Instruct the SPI controller to read the from the current sector
+		// and page in the SPI flash.
+		SF_read(configSPIptr, sector, page, BUF_LEN, send_data, recv_data);
+
+		// Copy all bytes read into RAM.
+		for (offset = CMD_LEN; offset< (u16)BUF_LEN; offset++)
+		{
+			*destination_location++ = recv_data[offset];
+		}
+
+		// Check to see if the end of the current sector has been reached.
+		if (page++ >= SF_PAGES_PER_SECTOR)
+		{
+			// The final page of this sector has been reached, move onto the
+			// first page of the next sector.
+			page = 0;
+			sector++;
+
+			// Show some progress of the boot process.
+			xil_printf(".");
+		}
+	}
+#ifdef BOOT_DEBUG
+	xil_printf("DONE\r\n");
+#endif // BOOT_DEBUG
+	
+#ifdef VERI
+	// Verify application code was copied correctly (checking only first
+	// 20000 bytes) from SPI flash to system RAM.
+#ifdef BOOT_DEBUG
+	xil_printf("Application Verifying...");
+#endif // BOOT_DEBUG
+	sector = APP_SECTOR_START;
+	page = 0;
+	destination_location = (unsigned char*)APP_DESTINATION_ADDR;
+
+	while (sector < (APP_SECTOR_START + 2))
+	{
+		// Instruct the SPI controller to read the from the current sector
+		// and page in the SPI flash
+		SF_read(configSPIptr, sector, page, BUF_LEN, send_data, recv_data);
+
+		// Verify all bytes exist in RAM.
+		for (offset = CMD_LEN; offset < (u16)BUF_LEN; offset++)
+		{
+			if (*destination_location++ != recv_data[offset])
+			{
+				xil_printf("ERROR! Application not copied correctly\r\n");
+			}
+		}
+
+		// Check to see if the end of the current sector has been reached.
+		if (++page >= SF_PAGES_PER_SECTOR)
+		{
+			// The final page of this sector has been reached, move onto the
+			// first page of the next sector.
+			page = 0;
+			sector++;
+
+			// Show some progress of the boot process.
+			xil_printf(".");
+		}
+	}
+#ifdef BOOT_DEBUG
+	xil_printf("DONE\r\n");
+#endif // BOOT_DEBUG
+
+#endif // VERI
+
+	// If a file system is to be used, read flash and copy file system image
+	// to RAM.
+#ifdef USE_FS
+	// Read flash and copy file system image to RAM.
+#ifdef BOOT_DEBUG
+	xil_printf("File System Loading...");
+#endif // BOOT_DEBUG
+
+	// Copy FS_SIZE number of bytes from SPI flash to system RAM.
+	sector = FS_SECTOR_START;
+	page = 0;
+	destination_location = (unsigned char*) (FS_DESTINATION_ADDR);
+
+	while (sector < FS_SECTOR_END)
+	{
+		// Instruct the SPI controller to read the from the current sector
+		// and page in the SPI flash.
+		SF_read(configSPIptr, sector, page, BUF_LEN, send_data, recv_data);
+
+		// Copy all bytes read into RAM.
+		for (offset = CMD_LEN; offset < (u16)BUF_LEN; offset++)
+		{
+			*destination_location++ = recv_data[offset];
+		}
+
+		// Check to see if the end of the current sector has been reached.
+		if (++page >= SF_PAGES_PER_SECTOR)
+		{
+			// The final page of this sector has been reached, move onto the
+			// first page of the next sector.
+			page = 0;
+			sector++;
+
+			// Show some progress of the boot process.
+			xil_printf(".");
+		}
+	}
+#ifdef BOOT_DEBUG
+	xil_printf("DONE\r\n");
+#endif // BOOT_DEBUG
+
+#ifdef VERI
+	// Verify file system image was copied correctly (checking only first
+	// 20000 bytes) from SPI flash to system RAM.
+#ifdef BOOT_DEBUG
+	xil_printf("File System Verifying...");
+#endif // BOOT_DEBUG
+
+	sector = FS_SECTOR_START;
+	page = 0;
+	destination_location = (unsigned char*) FS_DESTINATION_ADDR;
+
+	while (sector < (FS_SECTOR_START + 2))
+	{
+		// Instruct the SPI controller to read from the current sector
+		// and page in the SPI flash.
+		SF_read(configSPIptr, sector, page, BUF_LEN, send_data, recv_data);
+
+		// Veriry all bytes exist in RAM.
+		for (offset = CMD_LEN; offset < (u16)BUF_LEN; offset++)
+		{
+			if (*destination_location++ != recv_data[offset])
+			{
+				xil_printf("\r\nERROR! File system not copied correctly\r\n");
+			}
+		}
+
+		// Check to see if the end of the current sector has been reached.
+		if (++page >= SF_PAGES_PER_SECTOR)
+		{
+			// The final page of this sector has been reached, move onto the
+			// first page of the next sector.
+			page = 0;
+			sector++;
+
+			// Show some progress of the boot process.
+			xil_printf(".");
+		}
+	}
+#ifdef BOOT_DEBUG
+	xil_printf("DONE\r\n");
+#endif // BOOT_DEBUG
+
+#endif // VERI
+
+#endif // USE_FS
+
+	// Read flash and copy vector image to RAM.
+#ifdef BOOT_DEBUG
+	xil_printf("Interrupt Vectors Loading...");
+#endif // BOOT_DEBUG
+
+	// Copy VECTOR_SIZE number of bytes from SPI flash to system BRAM.
+	sector = VECTOR_SECTOR;
+	page = 0;
+	destination_location = (unsigned char*) VECTOR_ADDR;
+
+	// Instruct the SPI controller to read from the current sector
+	// and page in the SPI flash.
+	SF_read(configSPIptr, sector, page, VECTOR_SIZE, send_data, recv_data);
+
+	// Copy all bytes read into BRAM.
+	for (offset = CMD_LEN; offset < (u16)VECTOR_SIZE; offset++)
+	{
+		*destination_location++ = recv_data[offset];
+	}
+#ifdef BOOT_DEBUG
+	xil_printf("DONE\r\n");
+#endif // BOOT_DEBUG
+
+#ifdef VERI
+	// Verify VECTOR_SIZE number of bytes from SPI flash against system BRAM.
+#ifdef BOOT_DEBUG
+	xil_printf("Interrupt Vector Verifying...");
+#endif // BOOT_DEBUG
+
+	sector = VECTOR_SECTOR;
+	page = 0;
+	destination_location = (unsigned char*) VECTOR_ADDR;
+
+	// Instruct the SPI controller to read from the current sector
+	// and page in the SPI flash.
+	SF_read(configSPIptr, sector, page, VECTOR_SIZE, send_data, recv_data);
+
+	// Verify all bytes exist in RAM.
+	for (offset = CMD_LEN; offset < (u16)VECTOR_SIZE; offset++)
+	{
+		if (*destination_location++ != recv_data[offset])
+		{
+			xil_printf("\r\nERROR! Vector not copied correctly\r\n");
+		}
+	}
+#ifdef BOOT_DEBUG
+	xil_printf("DONE\r\n");
+#endif // BOOT_DEBUG
+
+#ifdef BOOT_DEBUG
+	xil_printf("DONE\r\n");
+#endif // BOOT_DEBUG
+
 #endif
 
-    flbuf = (uint8_t*)FLASH_IMAGE_BASEADDR;
-    ret = load_exec ();
+	// All loading from the SPI flash is complete, ready to complete boot
+	// sequence by jumping to application code in system RAM.
+	xil_printf("DONE\r\n");
 
-    /* If we reach here, we are in error */
-    
-#ifdef VERBOSE
-    if (ret > LD_SREC_LINE_ERROR) {
-        print ("ERROR in SREC line: ");
-        putnum (srec_line);
-        print (errors[ret]);    
-    } else {
-        print ("ERROR: ");
-        print (errors[ret]);
-    }
-#endif
+	// Disable cache and reinitialize it so that other applications can be
+	// run with no problems.
+	Xil_DCacheDisable();
+	Xil_ICacheDisable();
 
-    return ret;
+	// Update the function pointer that is set to point to the address of
+	// DESTINATION_ADDR. This will be used to change execution to the code
+	// now residing in system RAM.
+	boot_app = (int (*) (void)) APP_DESTINATION_ADDR;
+
+	// Jump to start execution code at the address START_ADDR.
+	boot_app();
+
+	// Code execution should never reach here.
+	while(1) {;}
+
+	return 0;
 }
-
-#ifdef VERBOSE
-static void display_progress (uint32_t count)
-{
-    /* Send carriage return */
-    outbyte (CR);  
-    print  ("Bootloader: Processed (0x)");
-    putnum (count);
-    print (" S-records");
-}
-#endif
-
-static uint8_t load_exec ()
-{
-    uint8_t ret;
-    void (*laddr)();
-    int8_t done = 0;
-    
-    srinfo.sr_data = sr_data_buf;
-    
-    while (!done) {
-        if ((ret = flash_get_srec_line (sr_buf)) != 0) 
-            return ret;
-
-        if ((ret = decode_srec_line (sr_buf, &srinfo)) != 0)
-            return ret;
-        
-#ifdef VERBOSE
-        display_progress (srec_line);
-#endif
-        switch (srinfo.type) {
-            case SREC_TYPE_0:
-                break;
-            case SREC_TYPE_1:
-            case SREC_TYPE_2:
-            case SREC_TYPE_3:
-                memcpy ((void*)srinfo.addr, (void*)srinfo.sr_data, srinfo.dlen);
-                break;
-            case SREC_TYPE_5:
-                break;
-            case SREC_TYPE_7:
-            case SREC_TYPE_8:
-            case SREC_TYPE_9:
-                laddr = (void (*)())srinfo.addr;
-                done = 1;
-                ret = 0;
-                break;
-        }
-    }
-
-#ifdef VERBOSE
-    print ("\r\nExecuting program starting at address: ");
-    putnum ((uint32_t)laddr);
-    print ("\r\n");
-#endif
-
-    (*laddr)();                 
-  
-    /* We will be dead at this point */
-    return 0;
-}
-
-
-static uint8_t flash_get_srec_line (uint8_t *buf)
-{
-    uint8_t c;
-    int count = 0;
-
-    while (1) {
-        c  = *flbuf++;
-        if (c == 0xD) {   
-            /* Eat up the 0xA too */
-            c = *flbuf++; 
-            return 0;
-        }
-        
-        *buf++ = c;
-        count++;
-        if (count > SREC_MAX_BYTES) 
-            return LD_SREC_LINE_ERROR;
-    }
-}
-
-#ifdef __PPC__
-
-#include <unistd.h>
-
-/* Save some code and data space on PowerPC 
-   by defining a minimal exit */
-void exit (int ret)
-{
-    _exit (ret);
-}
-#endif
