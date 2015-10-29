@@ -67,14 +67,20 @@ add_custom_target(download-elf
 
 add_custom_command(
 	COMMAND ${DATA2MEM} -bm ${CMAKE_SOURCE_DIR}/../${SYSTEM_NAME}_hw_platform/system_bd.bmm -bt ${CMAKE_SOURCE_DIR}/../${SYSTEM_NAME}_hw_platform/system.bit -bd ${TARGET}.elf tag ${PROCESSOR} -o b download.bit
-	DEPENDS ${TARGET}.elf
+	DEPENDS ${TARGET}
 	OUTPUT download.bit
 )
-add_custom_command(
-	COMMAND ${IMPACT} -batch $ENV{XIL_EDK}/generate-prom.cmd
+
+file(WRITE ${CMAKE_BINARY_DIR}/generate-prom.cmake "
+configure_file(\$ENV{XIL_EDK}/generate-prom.cmd \${CMAKE_BINARY_DIR}/generate-prom.cmd)
+")
+add_custom_target(
+	generate-mcs
+	COMMAND ${CMAKE_COMMAND} -D SIZE=16384
+							 -P generate-prom.cmake
+	COMMAND ${IMPACT} -batch generate-prom.cmd
 	COMMAND ${CMAKE_COMMAND} -E copy bitstream.mcs ${CMAKE_SOURCE_DIR}/${TARGET}.mcs
 	DEPENDS download.bit
-	OUTPUT ${TARGET}.mcs
 )
 
 file(WRITE ${CMAKE_BINARY_DIR}/program-prom.cmake "
@@ -84,18 +90,19 @@ configure_file(\$ENV{XIL_EDK}/program-prom.cmd \${CMAKE_BINARY_DIR}/program-prom
 add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -D FLASH_DEVICE="N25Q128" 
 							 -D MCS_FILE=${TARGET}.mcs
-							 -P ${CMAKE_BINARY_DIR}/program-prom.cmake
+							 -P program-prom.cmake
 	OUTPUT program-prom.cmd
 )
 
 add_custom_target(program-mcs
 	COMMAND ${IMPACT} -batch ${CMAKE_BINARY_DIR}/program-prom.cmd
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-	DEPENDS ${TARGET}.mcs program-prom.cmd
+	DEPENDS generate-mcs program-prom.cmd
 )
 
 set(ADD_CLEAN_FILES ${CMAKE_SOURCE_DIR}/${TARGET}.elf 
 					${CMAKE_SOURCE_DIR}/${TARGET}.mcs
+					_impactbatch.log
 					bitstream.cfi
 					bitstream.mcs
 					bitstream.prm

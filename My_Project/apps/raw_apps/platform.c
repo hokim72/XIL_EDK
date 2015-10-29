@@ -449,7 +449,7 @@ init_platform()
 
 	/* initialize file system layer */
 	if (platform_init_fs() < 0)
-            return -1;
+          return -1;
 #endif
 #ifdef __arm__
 

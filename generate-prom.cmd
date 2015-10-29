@@ -12,7 +12,7 @@ setAttribute -configdevice -attr swapBit -value "FALSE"
 setAttribute -configdevice -attr dir -value "UP"
 setAttribute -configdevice -attr multiboot -value "FALSE"
 setAttribute -configdevice -attr spiSelected -value "TRUE"
-addPromDevice -p 1 -size 16384 
+addPromDevice -p 1 -size @SIZE@
 setAttribute -design -attr name -value "0000"
 addDevice -p 1 -file "download.bit"
 generate

@@ -122,7 +122,7 @@ int main(void)
 		}
 
 		// Check to see if the end of the current sector has been reached.
-		if (page++ >= SF_PAGES_PER_SECTOR)
+		if (page++ >= SF_PAGES_PER_SECTOR-1)
 		{
 			// The final page of this sector has been reached, move onto the
 			// first page of the next sector.
@@ -163,7 +163,7 @@ int main(void)
 		}
 
 		// Check to see if the end of the current sector has been reached.
-		if (++page >= SF_PAGES_PER_SECTOR)
+		if (++page >= SF_PAGES_PER_SECTOR-1)
 		{
 			// The final page of this sector has been reached, move onto the
 			// first page of the next sector.
@@ -206,7 +206,7 @@ int main(void)
 		}
 
 		// Check to see if the end of the current sector has been reached.
-		if (++page >= SF_PAGES_PER_SECTOR)
+		if (++page >= SF_PAGES_PER_SECTOR-1)
 		{
 			// The final page of this sector has been reached, move onto the
 			// first page of the next sector.
@@ -248,7 +248,7 @@ int main(void)
 		}
 
 		// Check to see if the end of the current sector has been reached.
-		if (++page >= SF_PAGES_PER_SECTOR)
+		if (++page >= SF_PAGES_PER_SECTOR-1)
 		{
 			// The final page of this sector has been reached, move onto the
 			// first page of the next sector.
