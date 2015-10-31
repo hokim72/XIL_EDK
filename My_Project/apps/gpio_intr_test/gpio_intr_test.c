@@ -6,8 +6,8 @@
 #include "xil_exception.h"
 #include "xgpio.h"
 
-#define SWITCH_CHANNEL	1
-#define MY_DELAY 1000000
+#define SWITCH_CHANNEL	XGPIO_IR_CH1_MASK
+//#define MY_DELAY 1000000
 
 
 XIntc intc;
@@ -15,10 +15,10 @@ void GpioHandler(void* CallbackRef)
 {
 	XGpio* GpioPtr = (XGpio*)CallbackRef;
 
-	u32 CurrentISR = XIntc_In32(intc.BaseAddress + XIN_ISR_OFFSET);
+	u32 CurrentISR = XGpio_InterruptGetStatus(GpioPtr);
 	xil_printf("interrupt occured...0x%x\r\n", CurrentISR);
 	// Clear the interrupt
-	XGpio_InterruptClear(GpioPtr, 0xF);
+	XGpio_InterruptClear(GpioPtr, SWITCH_CHANNEL);
 }
 
 int main(void)
@@ -63,7 +63,7 @@ int main(void)
 
 	// Enable the GPIO channel interrupts so that dip switch can be
 	// detected and enable interrupts for the GPIO device
-	XGpio_InterruptEnable(&switch_Gpio, 0xF);
+	XGpio_InterruptEnable(&switch_Gpio, SWITCH_CHANNEL);
 	XGpio_InterruptGlobalEnable(&switch_Gpio);
 
 	// Initialize the exception table and register the interrupt
@@ -79,7 +79,7 @@ int main(void)
 	while (1)
 	{
 		//for(u32 myloop=0; myloop<MY_DELAY; myloop++) __asm volatile ("nop\n");
-		//XGpio_Out32(switch_Gpio.BaseAddress+XGPIO_ISR_OFFSET, 0x1);
+		//XGpio_Out32(switch_Gpio.BaseAddress+XGPIO_ISR_OFFSET, SWITCH_CHANNEL);
 	}
 
 	Xil_DCacheDisable();
