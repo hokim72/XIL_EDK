@@ -83,9 +83,19 @@ add_custom_command(
 	OUTPUT data.mcs
 )
 
+file(WRITE ${CMAKE_BINARY_DIR}/combine.cmake "
+FILE(READ \${SRC1} S1)
+STRING(REGEX REPLACE \"\\n:00000001FF\" \"\" S1 \${S1})
+FILE(READ \${SRC2} S2)
+FILE(WRITE \${DST} \${S1}\${S2})
+")
+
 add_custom_target(
 	generate-mcs
-	COMMAND cat bitstream.mcs data.mcs | awk -f $ENV{XIL_EDK}/combine.awk > ${TARGET}.mcs
+	COMMAND ${CMAKE_COMMAND} -D SRC1=bitstream.mcs
+							 -D SRC2=data.mcs
+							 -D DST=${TARGET}.mcs
+							 -P combine.cmake
 	COMMAND ${CMAKE_COMMAND} -E copy ${TARGET}.mcs ${CMAKE_SOURCE_DIR}/${TARGET}.mcs
 	DEPENDS bitstream.mcs data.mcs
 )
