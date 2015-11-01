@@ -2,6 +2,7 @@
 #include "task.h"
 
 #include "xil_printf.h"
+#include "xil_cache.h"
 
 // Declare a variable that is used to hold the handle of Task2.
 xTaskHandle xTask2Handle;
@@ -45,6 +46,22 @@ void vTask1(void* pvParameters)
 
 int main(void)
 {
+    microblaze_disable_interrupts();
+
+    #if defined( XPAR_MICROBLAZE_USE_ICACHE ) && ( XPAR_MICROBLAZE_USE_ICACHE != 0 )
+    {
+        Xil_ICacheInvalidate();
+        Xil_ICacheEnable();
+    }
+    #endif
+
+    #if defined( XPAR_MICROBLAZE_USE_DCACHE ) && ( XPAR_MICROBLAZE_USE_DCACHE != 0 )
+    {
+        Xil_DCacheInvalidate();
+        Xil_DCacheEnable();
+    }
+    #endif
+
 	// Create the first task at priority 1. The task parameter is not used
 	// so is set to NULL. The task handle is also not used so likewise is set
 	// to NULL.

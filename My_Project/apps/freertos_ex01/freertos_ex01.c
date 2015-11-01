@@ -2,6 +2,7 @@
 #include "task.h"
 
 #include "xil_printf.h"
+#include "xil_cache.h"
 
 #define mainDELAY_LOOP_COUNT 100000
 
@@ -53,6 +54,22 @@ void vTask2(void* pvParameters)
 
 int main(void)
 {
+    microblaze_disable_interrupts();
+
+    #if defined( XPAR_MICROBLAZE_USE_ICACHE ) && ( XPAR_MICROBLAZE_USE_ICACHE != 0 )
+    {
+        Xil_ICacheInvalidate();
+        Xil_ICacheEnable();
+    }
+    #endif
+
+    #if defined( XPAR_MICROBLAZE_USE_DCACHE ) && ( XPAR_MICROBLAZE_USE_DCACHE != 0 )
+    {
+        Xil_DCacheInvalidate();
+        Xil_DCacheEnable();
+    }
+    #endif
+	
 	// Create one of the two tasks. Note that a real application should check
 	// the return value of the xTaskCreate() call to ensure the task was created
 	// successfully.

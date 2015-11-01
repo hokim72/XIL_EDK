@@ -1,11 +1,12 @@
-BEGIN OS
- PARAMETER OS_NAME = freertos
- PARAMETER OS_VER = 2.00.a
- PARAMETER PROC_INSTANCE = microblaze_0
- PARAMETER STDIN = usb_uart
- PARAMETER STDOUT = usb_uart
- PARAMETER USE_IDLE_HOOK = true
-END
+#BEGIN OS
+# PARAMETER OS_NAME = freertos
+# PARAMETER OS_VER = 2.00.a
+# PARAMETER PROC_INSTANCE = microblaze_0
+# PARAMETER STDIN = usb_uart
+# PARAMETER STDOUT = usb_uart
+# PARAMETER USE_IDLE_HOOK = true
+## PARAMETER USE_TICK_HOOK = true
+#END
 
 
 # lwIP TCP/IP Stack library: lwIP v1.4.0, Xilinx adapter v1.03.a

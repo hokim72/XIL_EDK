@@ -3,6 +3,7 @@
 #include "semphr.h"
 
 #include "xil_printf.h"
+#include "xil_cache.h"
 #include "xparameters.h"
 #include "xgpio.h"
 
@@ -82,6 +83,22 @@ void vSoftwareInterruptHandler()
 
 void vSetupEnvironment(void)
 {
+    microblaze_disable_interrupts();
+
+    #if defined( XPAR_MICROBLAZE_USE_ICACHE ) && ( XPAR_MICROBLAZE_USE_ICACHE != 0 )
+    {
+        Xil_ICacheInvalidate();
+        Xil_ICacheEnable();
+    }
+    #endif
+
+    #if defined( XPAR_MICROBLAZE_USE_DCACHE ) && ( XPAR_MICROBLAZE_USE_DCACHE != 0 )
+    {
+        Xil_DCacheInvalidate();
+        Xil_DCacheEnable();
+    }
+    #endif
+
 	// Initialize the GPIO driver.
 	XGpio_Initialize(&switch_Gpio, XPAR_DIP_SWITCHES_4BITS_DEVICE_ID);
 }

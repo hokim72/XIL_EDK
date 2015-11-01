@@ -3,6 +3,7 @@
 #include "queue.h"
 
 #include "xil_printf.h"
+#include "xil_cache.h"
 
 #define mainSENDER_1	1
 #define mainSENDER_2	2
@@ -124,6 +125,22 @@ static void vReceiverTask(void* pvParameters)
 
 int main(void)
 {
+    microblaze_disable_interrupts();
+
+    #if defined( XPAR_MICROBLAZE_USE_ICACHE ) && ( XPAR_MICROBLAZE_USE_ICACHE != 0 )
+    {
+        Xil_ICacheInvalidate();
+        Xil_ICacheEnable();
+    }
+    #endif
+
+    #if defined( XPAR_MICROBLAZE_USE_DCACHE ) && ( XPAR_MICROBLAZE_USE_DCACHE != 0 )
+    {
+        Xil_DCacheInvalidate();
+        Xil_DCacheEnable();
+    }
+    #endif
+
 	// The queue is created to hold a maximum of 3 structures of type xData.
 	xQueue = xQueueCreate(3, sizeof(xData));
 

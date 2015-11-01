@@ -2,6 +2,7 @@
 #include "task.h"
 
 #include "xil_printf.h"
+#include "xil_cache.h"
 
 void vTaskFunction(void* pvParameters)
 {
@@ -38,6 +39,22 @@ static const char* pcTextForTask2 = "Task 2 is running\n";
 
 int main(void)
 {
+    microblaze_disable_interrupts();
+
+    #if defined( XPAR_MICROBLAZE_USE_ICACHE ) && ( XPAR_MICROBLAZE_USE_ICACHE != 0 )
+    {
+        Xil_ICacheInvalidate();
+        Xil_ICacheEnable();
+    }
+    #endif
+
+    #if defined( XPAR_MICROBLAZE_USE_DCACHE ) && ( XPAR_MICROBLAZE_USE_DCACHE != 0 )
+    {
+        Xil_DCacheInvalidate();
+        Xil_DCacheEnable();
+    }
+    #endif
+
 	// Create the first task at priority 1. The priority is the second to 
 	// last parameter.
 	xTaskCreate( vTaskFunction, "Task 1", configMINIMAL_STACK_SIZE, 

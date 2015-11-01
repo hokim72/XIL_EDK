@@ -3,6 +3,7 @@
 #include "queue.h"
 
 #include "xil_printf.h"
+#include "xil_cache.h"
 
 // Declare a variable of type xQueueHandle. This is used to store the handle to
 // the queue that is accessed by all three tasks.
@@ -114,6 +115,22 @@ static void vReceiveTask(void* pvParameters)
 
 int main(void)
 {
+    microblaze_disable_interrupts();
+
+    #if defined( XPAR_MICROBLAZE_USE_ICACHE ) && ( XPAR_MICROBLAZE_USE_ICACHE != 0 )
+    {
+        Xil_ICacheInvalidate();
+        Xil_ICacheEnable();
+    }
+    #endif
+
+    #if defined( XPAR_MICROBLAZE_USE_DCACHE ) && ( XPAR_MICROBLAZE_USE_DCACHE != 0 )
+    {
+        Xil_DCacheInvalidate();
+        Xil_DCacheEnable();
+    }
+    #endif
+
 	// The queue is created to hold a maximum of 5 values, each of which is
 	// large enough to hold a variable of type long.
 	xQueue = xQueueCreate(5, sizeof(long));

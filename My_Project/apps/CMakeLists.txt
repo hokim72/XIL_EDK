@@ -4,9 +4,10 @@ set(SYSTEM_NAME mb_system)
 set(PROCESSOR microblaze_0)
 set(APPLICATION_NAME empty_application)
 # Application Name : dhrystone, empty_application, hello_world, lwip_echo_server(lwip140), memory_tests, peripheral_tests, srec_bootloader, xilkernel_posix_threads_demo, zynq_fsbl
-#set(BSP standalone_bsp_0)
+set(BSP standalone_bsp_0)
 #set(BSP freertos_bsp_0)
-set(BSP freertos_bsp_1) # use_idle_hook=true
+#set(BSP freertos_bsp_1) # use_idle_hook=true
+#set(BSP freertos_bsp_2) # use_tick_hook=true
 
 if (NOT EXISTS ${CMAKE_SOURCE_DIR}/${SYSTEM_NAME}_hw_platform)
 execute_process(
