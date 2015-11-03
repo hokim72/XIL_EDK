@@ -32,7 +32,6 @@ set(LD_FLAGS
 	-mxl-pattern-compare
 	-mno-xl-soft-div
 	-mcpu=${MCU}
-	#-Wl,--start-group,-lxil,-lgcc,-lc,--end-group
 	-L${CMAKE_SOURCE_DIR}/../${BSP}/${PROCESSOR}/lib
 	-T${CMAKE_SOURCE_DIR}/../${BSP}/lscript.ld
 )
