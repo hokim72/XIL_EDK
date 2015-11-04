@@ -43,7 +43,7 @@
 #define UDP_TTL 255
 
 #define LWIP_TCP 1
-#define TCP_MSS 1450
+#define TCP_MSS 1460
 #define TCP_SND_BUF 8192
 #define TCP_WND 4096
 #define TCP_TTL 255

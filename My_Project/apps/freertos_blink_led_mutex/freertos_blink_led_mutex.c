@@ -12,7 +12,7 @@
 
 #define LED_CHANNEL	1
 
-#define BLINK_PERIOD 10
+#define BLINK_PERIOD 1000
 
 #define mainLED_ON_TASK_PRIORITY	(tskIDLE_PRIORITY + 1)
 #define mainLED_OFF_TASK_PRIORITY	(tskIDLE_PRIORITY + 1)

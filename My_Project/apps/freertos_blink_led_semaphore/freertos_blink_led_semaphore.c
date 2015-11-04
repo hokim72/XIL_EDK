@@ -15,7 +15,7 @@
 
 #define mainLED_TASK_PRIORITY	(tskIDLE_PRIORITY + 1)
 
-#define TIMER_PERIOD 10
+#define TIMER_PERIOD 1000
 #define TIMER_ID	123
 
 XGpio GpioOutput;

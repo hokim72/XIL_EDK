@@ -49,6 +49,8 @@
  PORT Ethernet_MAC_COL = Ethernet_MAC_COL, DIR = I
  PORT DIP_Switches_4Bits_TRI_I = DIP_Switches_4Bits_TRI_I, DIR = I, VEC = [3:0]
  PORT CLK_66MHZ = CLK_66MHZ, DIR = I, SIGIS = CLK, CLK_FREQ = 66666667
+ PORT CDCE913_I2C_Sda_pin = CDCE913_I2C_Sda, DIR = IO
+ PORT CDCE913_I2C_Scl_pin = CDCE913_I2C_Scl, DIR = IO
 
 
 BEGIN proc_sys_reset
@@ -72,7 +74,7 @@ BEGIN axi_intc
  BUS_INTERFACE S_AXI = axi4lite_0
  PORT IRQ = microblaze_0_interrupt
  PORT S_AXI_ACLK = clk_66_6667MHzPLL0
- PORT INTR = USB_Uart_Interrupt & Ethernet_MAC_IP2INTC_Irpt & axi_timer_0_Interrupt & DIP_Switches_4Bits_IP2INTC_Irpt
+ PORT INTR = USB_Uart_Interrupt & Ethernet_MAC_IP2INTC_Irpt & axi_timer_0_Interrupt & DIP_Switches_4Bits_IP2INTC_Irpt & CDCE913_I2C_IIC2INTC_Irpt
 END
 
 BEGIN lmb_v10
@@ -332,5 +334,17 @@ BEGIN axi_gpio
  PORT S_AXI_ACLK = clk_66_6667MHzPLL0
  PORT GPIO_IO_I = DIP_Switches_4Bits_TRI_I
  PORT IP2INTC_Irpt = DIP_Switches_4Bits_IP2INTC_Irpt
+END
+
+BEGIN axi_iic
+ PARAMETER INSTANCE = CDCE913_I2C
+ PARAMETER HW_VER = 1.02.a
+ PARAMETER C_BASEADDR = 0x40800000
+ PARAMETER C_HIGHADDR = 0x4080ffff
+ BUS_INTERFACE S_AXI = axi4lite_0
+ PORT S_AXI_ACLK = clk_66_6667MHzPLL0
+ PORT Sda = CDCE913_I2C_Sda
+ PORT Scl = CDCE913_I2C_Scl
+ PORT IIC2INTC_Irpt = CDCE913_I2C_IIC2INTC_Irpt
 END
 
