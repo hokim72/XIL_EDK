@@ -43,14 +43,14 @@ int main(void)
 	// Connect a device driver handler that will be called when an interrupt
 	// for the device occurs, the device driver handler performs the specific
 	// interrupt processing for the device
-	Status = XIntc_Connect(&intc, XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR, 
+	Status = XIntc_Connect(&intc, XPAR_INTC_0_TMRCTR_0_VEC_ID, 
 			XTmrCtr_InterruptHandler, &tmrctr);
 	if (Status != XST_SUCCESS) {
 		return Status;
 	}
 
 	// Enable the interrupt for the timer counter
-	XIntc_Enable(&intc, XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
+	XIntc_Enable(&intc, XPAR_INTC_0_TMRCTR_0_VEC_ID );
 
 	// Start the interrupt controller such that interrupts are enabled for
 	// all devices that cause interrupts, specific real mode so that

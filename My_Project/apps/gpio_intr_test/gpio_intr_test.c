@@ -46,12 +46,12 @@ int main(void)
 	}
 
 	// Hook up interrupt service routine
-	XIntc_Connect(&intc, XPAR_MICROBLAZE_0_INTC_DIP_SWITCHES_4BITS_IP2INTC_IRPT_INTR,
+	XIntc_Connect(&intc, XPAR_INTC_0_GPIO_0_VEC_ID,
 	GpioHandler, &switch_Gpio);
 
 
 	// Enable the interrupt vector at the interrupt controller
-	XIntc_Enable(&intc, XPAR_MICROBLAZE_0_INTC_DIP_SWITCHES_4BITS_IP2INTC_IRPT_INTR);
+	XIntc_Enable(&intc, XPAR_INTC_0_GPIO_0_VEC_ID);
 
 
 	// Start the interrupt controller such that interrupts are recognized
