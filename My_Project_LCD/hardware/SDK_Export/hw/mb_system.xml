@@ -1,5 +1,5 @@
 
-<EDKSYSTEM EDKVERSION="14.3" EDWVERSION="1.2" TIMESTAMP="Thu Nov  5 11:32:29 2015">
+<EDKSYSTEM EDKVERSION="14.3" EDWVERSION="1.2" TIMESTAMP="Fri Nov  6 04:01:40 2015">
 
   <SYSTEMINFO ARCH="spartan6" DEVICE="xc6slx9" PACKAGE="csg324" PART="xc6slx9csg324-2" SOURCE="/home/hokim/work/XIL_EDK/My_Project_LCD/hardware/build/mb_system.xmp" SPEEDGRADE="-2"/>
 

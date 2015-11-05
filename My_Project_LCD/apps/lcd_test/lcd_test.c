@@ -36,9 +36,6 @@ int main(void)
 {
 	int Status;
 
-	//Xil_ICacheEnable();
-	//Xil_DCacheEnable();
-
 	// Initialize the Timer
 	Status = XTmrCtr_Initialize(&DelayTimer, XPAR_TMRCTR_0_DEVICE_ID);
 	if (Status != XST_SUCCESS) {
@@ -62,6 +59,9 @@ int main(void)
 	// Initialize the LCD
 	lcd_init();
 
+	Xil_ICacheEnable();
+	Xil_DCacheEnable();
+
 	// Example write to the LCD
 	lcd_puts("http://www.noticekorea");
 	lcd_goto(1, 2);
@@ -69,8 +69,8 @@ int main(void)
 
 	while (1);
 
-	//Xil_DCacheDisable();
-	//Xil_ICacheDisable();
+	Xil_DCacheDisable();
+	Xil_ICacheDisable();
 
 	return 0;
 }
