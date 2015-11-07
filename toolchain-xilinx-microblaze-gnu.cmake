@@ -29,6 +29,7 @@
 ################################################################################
 
 ################################################################################
+find_program(XTCLSH xtclsh)
 find_program(XPS xps)
 find_program(ELFCHECK elfcheck)
 find_program(DATA2MEM data2mem)
