@@ -1,0 +1,15 @@
+# pin constraints
+#NET CLK_66MHZ LOC = "K15"  |  IOSTANDARD = "LVCMOS33";
+NET RESET LOC = "V4"  |  IOSTANDARD = "LVCMOS33"  |  TIG  |  PULLDOWN;
+NET USB_Uart_sin LOC = "R7"  |  IOSTANDARD = "LVCMOS33";
+NET USB_Uart_sout LOC = "T7"  |  IOSTANDARD = "LVCMOS33";
+NET CDCE913_I2C_Scl_pin LOC = "P12" | IOSTANDARD = "LVCMOS33" | PULLUP;
+NET CDCE913_I2C_Sda_pin LOC = "U13" | IOSTANDARD = "LVCMOS33" | PULLUP;
+#
+# additional constraints
+#
+
+#NET "CLK_66MHZ" TNM_NET = sys_clk_pin;
+#TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 66666 kHz;
+### Set Vccaux for S6LX9 MicroBoard to 3.3V ###
+CONFIG VCCAUX = "3.3" ;
